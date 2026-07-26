@@ -44,5 +44,5 @@ async def cmd_pending(message: Message):
     for tg_id, p in pending.items():
         await message.answer(
             t("pending_item", lang, name=p["name"], phone=p["phone"], tg_id=tg_id),
-            reply_markup=approval_keyboard(int(tg_id)),
+            reply_markup=approval_keyboard(int(tg_id), lang),
         )
