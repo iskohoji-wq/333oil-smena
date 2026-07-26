@@ -1,7 +1,5 @@
 """
-Меню оператора. Вся сдача смены происходит в Mini App —
-бот здесь просто открывает его и дальше принимает уже готовый
-отчёт через HTTP API (см. api.py), не через диалог в чате.
+Меню оператора. Вся сдача смены происходит в Mini App.
 """
 from aiogram import Router
 from aiogram.types import (
@@ -15,7 +13,7 @@ from locales import t
 router = Router()
 
 
-def operator_keyboard(lang: str) -> ReplyKeyboardMarkup:
+def operator_keyboard(lang):
     buttons = []
     if OPERATOR_WEBAPP_URL:
         buttons.append([KeyboardButton(
@@ -25,6 +23,8 @@ def operator_keyboard(lang: str) -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
 
 
-async def send_operator_menu(message: Message):
-    lang = storage.get_operator_lang(message.from_user.id)
+async def send_operator_menu(message: Message, lang=None):
+    tg_id = message.from_user.id if message.from_user else None
+    if lang is None:
+        lang = storage.get_lang(tg_id) if tg_id else "ru"
     await message.answer(t("operator_menu", lang), reply_markup=operator_keyboard(lang))
