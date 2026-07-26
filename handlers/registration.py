@@ -5,6 +5,8 @@
 - Пока не одобрен — бот ничего больше не отвечает и не пускает дальше.
 - Владелец одобряет/отклоняет через инлайн-кнопки.
 - Язык можно сменить в любой момент командой /lang.
+- ВАЖНО: у каждого владельца может быть свой язык — все тексты и кнопки,
+  которые видит конкретный человек, строятся под ЕГО язык, без смешивания.
 """
 from aiogram import Router, F, Bot
 from aiogram.filters import CommandStart, Command
@@ -42,10 +44,10 @@ def contact_keyboard(lang):
     )
 
 
-def approval_keyboard(tg_id):
+def approval_keyboard(tg_id, lang):
     return InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="Odobrit / Tasdiqlash", callback_data="approve:" + str(tg_id)),
-        InlineKeyboardButton(text="Otklonit / Rad etish", callback_data="reject:" + str(tg_id)),
+        InlineKeyboardButton(text=t("approve_btn", lang), callback_data="approve:" + str(tg_id)),
+        InlineKeyboardButton(text=t("reject_btn", lang), callback_data="reject:" + str(tg_id)),
     ]])
 
 
@@ -120,11 +122,12 @@ async def got_name(message: Message, state: FSMContext, bot: Bot):
     await message.answer(t("request_sent", lang))
 
     for owner_id in OWNER_IDS:
+        owner_lang = storage.get_lang(owner_id, default="ru")
         try:
             await bot.send_message(
                 owner_id,
-                t("pending_item", "ru", name=name, phone=phone, tg_id=tg_id),
-                reply_markup=approval_keyboard(tg_id),
+                t("new_request_prefix", owner_lang) + t("pending_item", owner_lang, name=name, phone=phone, tg_id=tg_id),
+                reply_markup=approval_keyboard(tg_id, owner_lang),
             )
         except Exception:
             pass
@@ -132,21 +135,22 @@ async def got_name(message: Message, state: FSMContext, bot: Bot):
 
 @router.callback_query(F.data.startswith("approve:"))
 async def cb_approve(callback: CallbackQuery, bot: Bot):
+    owner_lang = storage.get_lang(callback.from_user.id, default="ru")
     if callback.from_user.id not in OWNER_IDS:
-        await callback.answer("Nedostupno", show_alert=True)
+        await callback.answer(t("not_available", owner_lang), show_alert=True)
         return
     tg_id = int(callback.data.split(":")[1])
     pending = storage.get_pending().get(str(tg_id))
     if not pending:
-        await callback.answer("Zayavka uzhe obrabotana")
+        await callback.answer(t("already_processed", owner_lang))
         return
 
     operator_lang = storage.get_lang(tg_id, default="ru")
     storage.add_operator(tg_id, pending["name"], pending["phone"], lang=operator_lang)
     storage.remove_pending(tg_id)
 
-    await callback.message.edit_text(callback.message.text + "\n\nOdobreno")
-    await callback.answer("Operator dobavlen")
+    await callback.message.edit_text(callback.message.text + t("approved_suffix", owner_lang))
+    await callback.answer(t("operator_added", owner_lang))
     try:
         await bot.send_message(tg_id, t("approved_notify", operator_lang))
     except Exception:
@@ -155,20 +159,21 @@ async def cb_approve(callback: CallbackQuery, bot: Bot):
 
 @router.callback_query(F.data.startswith("reject:"))
 async def cb_reject(callback: CallbackQuery, bot: Bot):
+    owner_lang = storage.get_lang(callback.from_user.id, default="ru")
     if callback.from_user.id not in OWNER_IDS:
-        await callback.answer("Nedostupno", show_alert=True)
+        await callback.answer(t("not_available", owner_lang), show_alert=True)
         return
     tg_id = int(callback.data.split(":")[1])
     pending = storage.get_pending().get(str(tg_id))
     if not pending:
-        await callback.answer("Zayavka uzhe obrabotana")
+        await callback.answer(t("already_processed", owner_lang))
         return
 
-    lang = storage.get_lang(tg_id, default="ru")
+    operator_lang = storage.get_lang(tg_id, default="ru")
     storage.remove_pending(tg_id)
-    await callback.message.edit_text(callback.message.text + "\n\nOtkloneno")
-    await callback.answer("Zayavka otklonena")
+    await callback.message.edit_text(callback.message.text + t("rejected_suffix", owner_lang))
+    await callback.answer(t("request_rejected", owner_lang))
     try:
-        await bot.send_message(tg_id, t("rejected_notify", lang))
+        await bot.send_message(tg_id, t("rejected_notify", operator_lang))
     except Exception:
         pass
