@@ -178,4 +178,5 @@ def _format_shift_message(shift: dict) -> str:
         lines.append("")
         lines.append("⚠️ Расхождения:")
         for d in shift["discrepancies"]:
-            lines.append(f"Котёл {d['tank_id']}: {d['diff_liters']:+
+     lines.append(f"Котёл {d['tank_id']}: {d['diff_liters']:+} л")
+
