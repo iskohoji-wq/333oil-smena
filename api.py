@@ -75,7 +75,6 @@ async def submit_shift(request: web.Request):
     operator_name = operators.get(str(tg_id), {}).get("name", "—")
     cfg = storage.get_station_config()
 
-    # 1. Калибровка котлов -> литры
     tank_liters = {}
     for t in body.get("tanks", []):
         tank_id = int(t["tank_id"])
@@ -83,7 +82,6 @@ async def submit_shift(request: web.Request):
         mm = float(t.get("mm", 0))
         tank_liters[tank_id] = liters_from_dip(tank_id, cm, mm)
 
-    # 2. Счётчики -> продано литров, выручка, обновление "было" на след. смену
     prices = body.get("prices", cfg["prices"])
     counters_out = []
     total_liters = 0
@@ -110,7 +108,6 @@ async def submit_shift(request: web.Request):
             "sold_liters": sold, "price": price, "revenue": revenue,
         })
 
-    # 3. Сверка расхождений: ожидаемый расход котла (по счётчику) vs факт по калибровке
     discrepancies = []
     last_liters = cfg.get("last_tank_liters", {})
     for c in counters_out:
@@ -123,10 +120,9 @@ async def submit_shift(request: web.Request):
             actual_drop = prev - current
             expected_drop = c["sold_liters"]
             diff = round(actual_drop - expected_drop)
-            if abs(diff) > 5:  # порог в 5 литров, можно будет вынести в настройки
+            if abs(diff) > 5:
                 discrepancies.append({"tank_id": tank_id, "diff_liters": diff})
 
-    # 4. Сохраняем отчёт
     shift = {
         "operator_tg_id": tg_id,
         "operator_name": operator_name,
@@ -139,7 +135,6 @@ async def submit_shift(request: web.Request):
     }
     storage.add_shift(shift)
 
-    # 5. Обновляем состояние станции: новые "было" для счётчиков, новая калибровка котлов
     updated_last_liters = dict(last_liters)
     for tank_id, liters in tank_liters.items():
         updated_last_liters[str(tank_id)] = liters
@@ -148,7 +143,6 @@ async def submit_shift(request: web.Request):
         "last_tank_liters": updated_last_liters,
     })
 
-    # 6. Отправляем отчёт владельцам в Telegram
     bot = request.app["bot"]
     text = _format_shift_message(shift)
     for owner_id in OWNER_IDS:
@@ -160,23 +154,85 @@ async def submit_shift(request: web.Request):
     return web.json_response({"ok": True, "shift": shift})
 
 
-def _format_shift_message(shift: dict) -> str:
+def _format_shift_message(shift):
     date_str = datetime.now(timezone.utc).strftime("%d.%m.%Y %H:%M")
-    lines = [
-        f"📋 Отчёт смены — {date_str}",
-        f"Оператор: {shift['operator_name']}",
-        "",
-    ]
+    lines = []
+    lines.append("Отчёт смены — " + date_str)
+    lines.append("Оператор: " + str(shift["operator_name"]))
+    lines.append("")
     for c in shift["counters"]:
         if c["tank_id"]:
-            lines.append(f"{c['fuel']} ({c['tag']}): {c['sold_liters']} л × {c['price']} = {c['revenue']:,} сум")
+            row = str(c["fuel"]) + " (" + str(c["tag"]) + "): " + str(c["sold_liters"]) + " л x " + str(c["price"]) + " = " + str(c["revenue"]) + " sum"
+            lines.append(row)
     lines.append("")
-    lines.append(f"Всего продано: {shift['total_liters']} л")
-    lines.append(f"Выручка: {shift['total_revenue']:,} сум")
+    lines.append("Всего продано: " + str(shift["total_liters"]) + " л")
+    lines.append("Выручка: " + str(shift["total_revenue"]) + " сум")
 
     if shift["discrepancies"]:
         lines.append("")
-        lines.append("⚠️ Расхождения:")
+        lines.append("Расхождения:")
         for d in shift["discrepancies"]:
-     lines.append(f"Котёл {d['tank_id']}: {d['diff_liters']:+} л")
+            row = "Котёл " + str(d["tank_id"]) + ": " + str(d["diff_liters"]) + " л"
+            lines.append(row)
 
+    return "\n".join(lines)
+
+
+async def get_pending(request: web.Request):
+    tg_id = request.query.get("tg_id")
+    if not _is_owner(tg_id):
+        return web.json_response({"error": "not_authorized"}, status=403)
+    pending = storage.get_pending()
+    return web.json_response([
+        {"tg_id": tid, **p} for tid, p in pending.items()
+    ])
+
+
+async def resolve_pending(request: web.Request):
+    body = await request.json()
+    tg_id = request.query.get("tg_id")
+    if not _is_owner(tg_id):
+        return web.json_response({"error": "not_authorized"}, status=403)
+
+    target_id = int(body["tg_id"])
+    approve = bool(body.get("approve"))
+    pending = storage.get_pending().get(str(target_id))
+    if not pending:
+        return web.json_response({"error": "not_found"}, status=404)
+
+    storage.remove_pending(target_id)
+    bot = request.app["bot"]
+    if approve:
+        storage.add_operator(target_id, pending["name"], pending["phone"])
+        try:
+            await bot.send_message(target_id, "Владелец одобрил вашу заявку. Теперь вы можете сдавать смены в 333 OIL.")
+        except Exception:
+            pass
+    else:
+        try:
+            await bot.send_message(target_id, "К сожалению, владелец отклонил вашу заявку.")
+        except Exception:
+            pass
+
+    return web.json_response({"ok": True})
+
+
+async def update_settings(request: web.Request):
+    tg_id = request.query.get("tg_id")
+    if not _is_owner(tg_id):
+        return web.json_response({"error": "not_authorized"}, status=403)
+    body = await request.json()
+    cfg = storage.update_station_config(body)
+    return web.json_response(cfg)
+
+
+def create_app(bot):
+    app = web.Application(middlewares=[cors_middleware()])
+    app["bot"] = bot
+    app.router.add_get("/api/config", get_config)
+    app.router.add_post("/api/shift", submit_shift)
+    app.router.add_get("/api/pending", get_pending)
+    app.router.add_post("/api/pending/resolve", resolve_pending)
+    app.router.add_post("/api/settings", update_settings)
+    app.router.add_route("OPTIONS", "/{tail:.*}", lambda r: web.Response())
+    return app
