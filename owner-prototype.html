@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Владелец — прототип</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#FFFFFF;
+    --panel:#F2F6FC;
+    --panel-2:#EAF1FB;
+    --paper:#FFFFFF;
+    --paper-line:#DCE8F8;
+    --blue:#155CE0;
+    --blue-deep:#0A2E6B;
+    --blue-dim:#5A83C4;
+    --green:#1E9E6B;
+    --red:#D1473A;
+    --text:#16233B;
+    --muted:#6C7C93;
+    --mono:'IBM Plex Mono', monospace;
+    --sans:'IBM Plex Sans', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;background:#0A1116;font-family:var(--sans);
+    display:flex;justify-content:center;padding:24px 12px;min-height:100vh;
+  }
+  .phone{
+    width:390px;max-width:100%;background:var(--ink);border-radius:34px;
+    border:1px solid #D3E0F2;box-shadow:0 40px 80px -30px rgba(10,46,107,.35);
+    overflow:hidden;color:var(--text);position:relative;
+  }
+  .notch{height:26px;display:flex;align-items:center;justify-content:center;}
+  .notch::before{content:'';width:90px;height:6px;border-radius:6px;background:#000;opacity:.5;}
+
+  header{
+    padding:6px 20px 14px;border-bottom:1px solid #E1EAF6;
+    background:linear-gradient(180deg,#F2F7FE,#FFFFFF);
+  }
+  .row-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .brand{display:flex;align-items:center;gap:8px;}
+  .brand .mark{
+    width:26px;height:26px;border-radius:7px;background:var(--blue-deep);color:#fff;
+    font-family:var(--mono);font-weight:700;font-size:10px;display:flex;align-items:center;justify-content:center;
+  }
+  .brand .word{font-size:13px;font-weight:700;letter-spacing:.06em;color:var(--blue-deep);}
+  .brand .word span{color:var(--blue);font-weight:500;}
+  .role{
+    font-family:var(--mono);font-size:10px;background:var(--blue-deep);color:#fff;
+    padding:4px 9px;border-radius:999px;letter-spacing:.05em;
+  }
+  .langtoggle{
+    display:flex;background:#EAF1FB;border-radius:999px;padding:3px;border:1px solid #D3E0F2;
+  }
+  .langtoggle button{
+    border:none;background:transparent;color:var(--blue-dim);font-family:var(--mono);
+    font-size:11px;font-weight:600;padding:5px 10px;border-radius:999px;cursor:pointer;
+  }
+  .langtoggle button.active{background:var(--blue);color:#fff;}
+  h1{font-size:20px;margin:0;font-weight:700;letter-spacing:-.01em;color:var(--blue-deep);}
+
+  nav.tabs{
+    display:flex;gap:4px;margin-top:14px;background:#EAF1FB;border-radius:12px;padding:4px;
+  }
+  nav.tabs button{
+    flex:1;border:none;background:transparent;padding:8px 4px;border-radius:9px;
+    font-family:var(--sans);font-size:11.5px;font-weight:600;color:var(--blue-dim);cursor:pointer;
+  }
+  nav.tabs button.active{background:var(--blue);color:#fff;}
+
+  .station-row{
+    display:flex;gap:6px;margin-top:10px;overflow-x:auto;padding-bottom:2px;
+  }
+  .station-row::-webkit-scrollbar{display:none;}
+  .station-chip{
+    flex:none;padding:6px 12px;border-radius:999px;border:1px solid #D3E0F2;background:#fff;
+    font-family:var(--mono);font-size:11.5px;font-weight:600;color:var(--blue-dim);cursor:pointer;
+    white-space:nowrap;
+  }
+  .station-chip.active{background:var(--blue-deep);border-color:var(--blue-deep);color:#fff;}
+
+  main{padding:18px 18px 24px;height:600px;overflow-y:auto;}
+  section{display:none;}
+  section.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+  .section-label{
+    font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--blue);margin:0 0 10px;display:flex;align-items:center;gap:8px;
+  }
+  .section-label::after{content:'';flex:1;height:1px;background:#DCE8F8;}
+
+  /* Requests */
+  .request-card{
+    background:var(--panel);border:1px solid #D3E0F2;border-radius:14px;padding:14px 16px;margin-bottom:12px;
+  }
+  .request-card .name{font-weight:700;color:var(--blue-deep);font-size:14.5px;}
+  .request-card .phone{font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:2px;}
+  .request-card .meta{font-size:11px;color:var(--muted);margin-top:6px;}
+  .request-actions{display:flex;gap:8px;margin-top:12px;}
+  .request-actions button{
+    flex:1;padding:10px;border-radius:9px;border:none;font-weight:600;font-size:13px;cursor:pointer;
+  }
+  .btn-approve{background:var(--green);color:#fff;}
+  .btn-reject{background:#fff;border:1px solid #E3B9B2;color:var(--red);}
+  .empty-hint{font-size:12.5px;color:var(--muted);text-align:center;padding:30px 10px;}
+
+  /* Reports */
+  .period-switch{display:flex;gap:6px;margin-bottom:14px;}
+  .period-switch button{
+    flex:1;padding:8px 4px;border-radius:9px;border:1px solid #D3E0F2;background:#fff;
+    font-size:12px;font-weight:600;color:var(--blue-dim);cursor:pointer;
+  }
+  .period-switch button.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+  .grand{
+    background:linear-gradient(160deg,var(--blue-deep),var(--blue));border-radius:16px;
+    padding:18px;text-align:center;margin-bottom:14px;
+  }
+  .grand .lbl{font-size:11px;color:#CBDCF7;text-transform:uppercase;letter-spacing:.1em;}
+  .grand .amt{font-family:var(--mono);font-size:28px;font-weight:700;color:#fff;margin-top:4px;}
+  .bars{
+    background:var(--panel-2);border:1px solid #D3E0F2;border-radius:16px;padding:16px;margin-bottom:14px;
+  }
+  .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12px;}
+  .bar-row:last-child{margin-bottom:0;}
+  .bar-row .day{width:28px;color:var(--muted);font-family:var(--mono);}
+  .bar-track{flex:1;height:8px;background:#DCE8F8;border-radius:6px;overflow:hidden;}
+  .bar-fill{height:100%;background:var(--blue);border-radius:6px;}
+  .bar-row .val{width:44px;text-align:right;font-family:var(--mono);color:var(--blue-deep);}
+  .summary-card{
+    background:var(--panel-2);border:1px solid #D3E0F2;border-radius:16px;padding:16px;margin-bottom:14px;
+  }
+  .summary-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #DCE8F8;font-size:13px;}
+  .summary-row:last-child{border-bottom:none;}
+  .summary-row .v{font-family:var(--mono);font-weight:600;color:var(--blue-deep);}
+  .alert-card{
+    background:#FBEAE7;border:1px solid var(--red);border-radius:12px;padding:12px 14px;
+    font-size:12px;line-height:1.5;margin-bottom:10px;color:#8A2E22;display:flex;gap:9px;
+  }
+
+  /* AI assistant */
+  .chat-log{margin-bottom:12px;}
+  .msg{margin-bottom:12px;display:flex;}
+  .msg.user{justify-content:flex-end;}
+  .bubble{
+    max-width:82%;padding:10px 13px;border-radius:14px;font-size:13px;line-height:1.5;
+  }
+  .msg.user .bubble{background:var(--blue);color:#fff;border-bottom-right-radius:4px;}
+  .msg.ai .bubble{background:var(--panel);border:1px solid #D3E0F2;color:var(--text);border-bottom-left-radius:4px;}
+  .ai-tag{font-family:var(--mono);font-size:9.5px;color:var(--blue-dim);margin-bottom:4px;letter-spacing:.06em;text-transform:uppercase;}
+  .anomaly-feed .section-label{margin-top:16px;}
+  .chat-input-row{
+    display:flex;gap:8px;position:sticky;bottom:0;background:#fff;padding-top:10px;
+  }
+  .chat-input-row input{
+    flex:1;padding:11px 13px;border-radius:11px;border:1px solid #C5D8F0;background:#F7FAFE;
+    font-family:var(--sans);font-size:13px;color:var(--text);
+  }
+  .chat-input-row button{
+    background:var(--blue);color:#fff;border:none;border-radius:11px;padding:0 16px;font-weight:700;cursor:pointer;
+  }
+
+  /* Settings */
+  .settings-card{
+    background:var(--panel);border:1px solid #D3E0F2;border-radius:14px;padding:14px 16px;margin-bottom:12px;
+  }
+  .settings-card .row{display:flex;gap:8px;margin-bottom:8px;}
+  .settings-card label{font-size:10px;color:var(--blue-dim);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:4px;}
+  .settings-card input{
+    width:100%;padding:9px 10px;border-radius:8px;border:1px solid #C5D8F0;background:#fff;
+    font-family:var(--sans);font-size:13.5px;color:var(--text);
+  }
+  .settings-card .price-field{width:110px;flex:none;}
+  .add-op-card{
+    background:var(--panel-2);border:1px dashed var(--blue-dim);border-radius:14px;padding:14px 16px;margin-top:6px;
+  }
+  .add-op-card .btn-add{
+    width:100%;margin-top:10px;background:var(--blue);color:#fff;border:none;border-radius:10px;padding:11px;font-weight:600;font-size:13.5px;cursor:pointer;
+  }
+  .hint-note{font-size:11.5px;color:var(--muted);line-height:1.5;margin:4px 2px 0;}
+
+  ::-webkit-scrollbar{width:0;}
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="notch"></div>
+  <header>
+    <div class="row-top">
+      <div class="brand">
+        <div class="mark">333</div>
+        <div class="word">OIL <span>· Панель</span></div>
+      </div>
+      <div class="role" id="roleTag" data-i18n="role">Владелец</div>
+      <div class="langtoggle">
+        <button data-lang="ru" class="active">RU</button>
+        <button data-lang="uz">UZ</button>
+      </div>
+    </div>
+    <h1 data-i18n="greeting">Добрый вечер, Искандар</h1>
+    <nav class="tabs">
+      <button class="active" data-tab="requests"><span data-i18n="tabRequests">Заявки</span> <span id="reqCount"></span></button>
+      <button data-tab="reports" data-i18n="tabReports">Отчёты</button>
+      <button data-tab="ai" data-i18n="tabAi">ИИ</button>
+      <button data-tab="settings" data-i18n="tabSettings">Настройки</button>
+    </nav>
+    <div class="station-row" id="stationRow"></div>
+  </header>
+
+  <main>
+    <!-- REQUESTS -->
+    <section class="active" id="tab-requests">
+      <div id="requestsContent"></div>
+    </section>
+
+    <!-- REPORTS -->
+    <section id="tab-reports">
+      <div class="period-switch">
+        <button class="active" data-period="day" data-i18n="periodDay">День</button>
+        <button data-period="week" data-i18n="periodWeek">Неделя</button>
+        <button data-period="month" data-i18n="periodMonth">Месяц</button>
+        <button data-period="year" data-i18n="periodYear">Год</button>
+      </div>
+      <div id="reportsContent"></div>
+    </section>
+
+    <!-- AI ASSISTANT -->
+    <section id="tab-ai">
+      <p class="section-label" data-i18n="askAi">Спросить ИИ-ассистента</p>
+      <div class="chat-log" id="chatLog">
+        <div class="msg user"><div class="bubble">Сколько заработали на АИ-92 за неделю?</div></div>
+        <div class="msg ai">
+          <div class="bubble">
+            <div class="ai-tag" data-i18n="aiTag">На основе данных бота</div>
+            За последние 7 смен по АИ-92 продано 2 340 л на сумму 4 212 000 сум — это на 8% выше среднего за предыдущие недели. Резких аномалий не найдено.
+          </div>
+        </div>
+      </div>
+      <div class="chat-input-row">
+        <input type="text" id="chatInput" data-i18n-ph="chatPlaceholder" placeholder="Например: были ли расхождения на этой неделе?">
+        <button onclick="sendChat()">→</button>
+      </div>
+
+      <div class="anomaly-feed">
+        <p class="section-label" data-i18n="anomalyFeed">Лента аномалий</p>
+        <div class="alert-card">⚠️ <span>Котёл 2: расхождение с калибровкой растёт третью смену подряд — стоит проверить на утечку.</span></div>
+        <div class="alert-card">⚠️ <span>АИ-98 в пятницу продано на 24% меньше обычного для этого дня недели.</span></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="tab-settings">
+      <div id="settingsContent"></div>
+
+      <p class="section-label" style="margin-top:20px" data-i18n="addOpLabel">Добавить оператора</p>
+      <div class="add-op-card">
+        <label data-i18n="fullName">Имя и фамилия</label>
+        <input type="text" data-i18n-ph="fullNamePh" placeholder="напр. Валиев Дилшод" style="margin-bottom:8px">
+        <label data-i18n="phoneLabel">Номер телефона</label>
+        <input type="text" placeholder="+998 __ ___ __ __">
+        <button class="btn-add" data-i18n="addOpBtn">Добавить оператора</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const dict = {
+  ru:{
+    role:"Владелец", greeting:"Добрый вечер, Искандар",
+    tabRequests:"Заявки", tabReports:"Отчёты", tabAi:"ИИ", tabSettings:"Настройки",
+    pendingLabel:"Ожидают одобрения", pendingMeta:"Хочет стать оператором · сегодня, 21:14",
+    approve:"Одобрить", reject:"Отклонить",
+    emptyHint:"Новых заявок пока нет.<br>Уведомим, как только кто-то попробует зарегистрироваться.",
+    activeOps:"Активные операторы",
+    periodDay:"День", periodWeek:"Неделя", periodMonth:"Месяц", periodYear:"Год",
+    revenueToday:"Выручка · сегодня", totalSold:"Всего продано", discrepancies:"Расхождения",
+    askAi:"Спросить ИИ-ассистента", aiTag:"На основе данных бота",
+    chatPlaceholder:"Например: были ли расхождения на этой неделе?",
+    anomalyFeed:"Лента аномалий",
+    tanksLabel:"Котлы", tankNameLbl:"Название",
+    countersLabel:"Показания счётчиков", counterTag:"Счётчик",
+    countersHint:"Текущее показание счётчика на колонке — используется как стартовая точка для первой смены после запуска бота, или для ручной коррекции при ошибке.",
+    priceHint:"Цену за литр устанавливает оператор перед сдачей смены — она указывается в каждом отчёте.",
+    addOpLabel:"Добавить оператора", fullName:"Имя и фамилия", fullNamePh:"напр. Валиев Дилшод",
+    phoneLabel:"Номер телефона", addOpBtn:"Добавить оператора"
+  },
+  uz:{
+    role:"Egasi", greeting:"Xayrli kech, Iskandar",
+    tabRequests:"So'rovlar", tabReports:"Hisobotlar", tabAi:"AI", tabSettings:"Sozlamalar",
+    pendingLabel:"Tasdiqlanishini kutmoqda", pendingMeta:"Operator bo'lishni xohlaydi · bugun, 21:14",
+    approve:"Tasdiqlash", reject:"Rad etish",
+    emptyHint:"Hozircha yangi so'rovlar yo'q.<br>Kimdir ro'yxatdan o'tishga urinishi bilan xabar beramiz.",
+    activeOps:"Faol operatorlar",
+    periodDay:"Kun", periodWeek:"Hafta", periodMonth:"Oy", periodYear:"Yil",
+    revenueToday:"Tushum · bugun", totalSold:"Jami sotildi", discrepancies:"Farqlar",
+    askAi:"AI-yordamchidan so'rang", aiTag:"Bot ma'lumotlari asosida",
+    chatPlaceholder:"Masalan: bu hafta farqlar bo'ldimi?",
+    anomalyFeed:"Anomaliyalar lentasi",
+    tanksLabel:"Qozonlar", tankNameLbl:"Nomi",
+    countersLabel:"Hisoblagich ko'rsatkichlari", counterTag:"Hisoblagich",
+    countersHint:"Kolonkadagi joriy hisoblagich ko'rsatkichi — bot ishga tushgandan keyingi birinchi smena uchun boshlang'ich nuqta, yoki xatoni qo'lda tuzatish uchun ishlatiladi.",
+    priceHint:"Litr narxini operator smenani topshirishdan oldin belgilaydi — u har bir hisobotda ko'rsatiladi.",
+    addOpLabel:"Operator qo'shish", fullName:"Ism va familiya", fullNamePh:"masalan: Valiyev Dilshod",
+    phoneLabel:"Telefon raqami", addOpBtn:"Operator qo'shish"
+  }
+};
+
+const stations = [
+  {id:'all', name:'Все станции', nameUz:'Barcha shoxobchalar'},
+  {id:1, name:'АЗС №1'},
+  {id:2, name:'АЗС №2'},
+  {id:3, name:'АЗС №3'},
+  {id:4, name:'АЗС №4'},
+  {id:5, name:'АЗС №5'},
+];
+
+const stationData = {
+  1:{ revenue:6210000, week:[5.4,6.1,4.8,7.0,6.2], fuels:{'АИ-92':540,'АИ-95':190,'АИ-98':85},
+      tanks:['Котёл 1 · АИ-92','Котёл 2 · АИ-92','Котёл 3 · АИ-95','Котёл 4 · АИ-98'],
+      counters:[{tag:'А', value:184680},{tag:'Б', value:97290},{tag:'В', value:55210},{tag:'Г', value:30525}],
+      pending:[{name:'Тургунов Санжар', phone:'+998 90 123 45 67'}],
+      active:[{name:'Комилов Алишер',phone:'+998 90 555 12 34'},{name:'Ражабов Отабек',phone:'+998 93 220 98 11'}],
+      discrepancy:'Котёл 2, смена 15.07 (Комилов А.) — расхождение −12 л между калибровкой и счётчиком.' },
+  2:{ revenue:4870000, week:[4.0,4.5,4.9,4.2,4.9], fuels:{'АИ-92':410,'АИ-95':140,'АИ-98':60},
+      tanks:['Котёл 1 · АИ-92','Котёл 2 · АИ-95'],
+      counters:[{tag:'А', value:0},{tag:'Б', value:0}],
+      pending:[], active:[{name:'Норов Дилшод',phone:'+998 91 111 22 33'}], discrepancy:null },
+  3:{ revenue:5320000, week:[5.0,5.1,4.7,5.6,5.3], fuels:{'АИ-92':470,'АИ-95':160,'АИ-98':70},
+      tanks:['Котёл 1 · АИ-92','Котёл 2 · АИ-95','Котёл 3 · АИ-98'],
+      counters:[{tag:'А', value:0},{tag:'Б', value:0},{tag:'В', value:0}],
+      pending:[{name:'Юсупов Бахтиёр', phone:'+998 97 456 78 90'}],
+      active:[{name:'Эргашев Тимур',phone:'+998 90 222 33 44'}], discrepancy:null },
+  4:{ revenue:3980000, week:[3.5,3.9,3.6,4.1,4.0], fuels:{'АИ-92':340,'АИ-95':110,'АИ-98':40},
+      tanks:['Котёл 1 · АИ-92','Котёл 2 · АИ-98'],
+      counters:[{tag:'А', value:0},{tag:'Б', value:0}],
+      pending:[], active:[{name:'Каримов Санжарбек',phone:'+998 93 777 88 99'}], discrepancy:null },
+  5:{ revenue:4510000, week:[4.2,4.4,4.0,4.7,4.5], fuels:{'АИ-92':400,'АИ-95':130,'АИ-98':55},
+      tanks:['Котёл 1 · АИ-92','Котёл 2 · АИ-95','Котёл 3 · АИ-98'],
+      counters:[{tag:'А', value:0},{tag:'Б', value:0},{tag:'В', value:0}],
+      pending:[], active:[{name:'Абдуллаев Жасур',phone:'+998 94 333 22 11'}], discrepancy:null },
+};
+
+let currentStation = 'all';
+const fmt = n => n.toLocaleString('ru-RU');
+
+function stationName(id, lang){
+  const st = stations.find(s=>s.id===id);
+  return (lang==='uz' && st.nameUz) ? st.nameUz : st.name;
+}
+
+function renderStationRow(){
+  const lang = document.querySelector('.langtoggle button.active').dataset.lang;
+  const row = document.getElementById('stationRow');
+  row.innerHTML = stations.map(s=>
+    `<button class="station-chip ${s.id===currentStation?'active':''}" data-station="${s.id}">${stationName(s.id, lang)}</button>`
+  ).join('');
+  row.querySelectorAll('.station-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      currentStation = chip.dataset.station === 'all' ? 'all' : parseInt(chip.dataset.station);
+      renderAll();
+    });
+  });
+}
+
+function renderRequests(){
+  const lang = document.querySelector('.langtoggle button.active').dataset.lang;
+  const d = dict[lang];
+  const ids = currentStation==='all' ? [1,2,3,4,5] : [currentStation];
+  let pendingHtml = '';
+  ids.forEach(id=>{
+    stationData[id].pending.forEach((p,idx)=>{
+      const tag = currentStation==='all' ? `<div class="meta">АЗС №${id}</div>` : '';
+      pendingHtml += `<div class="request-card">
+        <div class="name">${p.name}</div>
+        <div class="phone">${p.phone}</div>
+        <div class="meta">${d.pendingMeta}</div>${tag}
+        <div class="request-actions">
+          <button class="btn-approve" data-station="${id}" data-idx="${idx}">${d.approve}</button>
+          <button class="btn-reject" data-station="${id}" data-idx="${idx}">${d.reject}</button>
+        </div></div>`;
+    });
+  });
+  if(!pendingHtml) pendingHtml = `<div class="empty-hint">${d.emptyHint}</div>`;
+  const pendingCount = ids.reduce((n,id)=>n+stationData[id].pending.length,0);
+  document.getElementById('reqCount').textContent = pendingCount ? '· '+pendingCount : '';
+
+  let activeHtml = '';
+  ids.forEach(id=>{
+    stationData[id].active.forEach(a=>{
+      const tag = currentStation==='all' ? ` · АЗС №${id}` : '';
+      activeHtml += `<div class="request-card">
+        <div class="name">${a.name}</div>
+        <div class="phone">${a.phone}${tag}</div>
+      </div>`;
+    });
+  });
+
+  document.getElementById('requestsContent').innerHTML =
+    `<p class="section-label">${d.pendingLabel}</p>${pendingHtml}
+     <p class="section-label" style="margin-top:20px">${d.activeOps}</p>${activeHtml}`;
+
+  document.querySelectorAll('.btn-approve, .btn-reject').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = parseInt(btn.dataset.station);
+      const idx = parseInt(btn.dataset.idx);
+      if(btn.classList.contains('btn-approve')){
+        const p = stationData[id].pending[idx];
+        stationData[id].active.push({name:p.name, phone:p.phone});
+      }
+      stationData[id].pending.splice(idx,1);
+      renderRequests();
+    });
+  });
+}
+
+function renderReports(){
+  const lang = document.querySelector('.langtoggle button.active').dataset.lang;
+  const d = dict[lang];
+  let html = '';
+
+  if(currentStation==='all'){
+    const total = [1,2,3,4,5].reduce((s,id)=>s+stationData[id].revenue,0);
+    html += `<div class="grand"><div class="lbl">${d.revenueToday}</div><div class="amt">${fmt(total)} сум</div></div>`;
+    html += `<div class="summary-card">`;
+    [1,2,3,4,5].forEach(id=>{
+      html += `<div class="summary-row"><span>АЗС №${id}</span><span class="v">${fmt(stationData[id].revenue)} сум</span></div>`;
+    });
+    html += `</div>`;
+    html += `<p class="section-label">${d.discrepancies}</p>`;
+    const withIssues = [1,2,3,4,5].filter(id=>stationData[id].discrepancy);
+    if(withIssues.length){
+      withIssues.forEach(id=>{
+        html += `<div class="alert-card">⚠️ <span>АЗС №${id}: ${stationData[id].discrepancy}</span></div>`;
+      });
+    } else {
+      html += `<div class="empty-hint">—</div>`;
+    }
+  } else {
+    const s = stationData[currentStation];
+    const days = lang==='uz' ? ['Du','Se','Ch','Pa','Ju'] : ['Пн','Вт','Ср','Чт','Пт'];
+    html += `<div class="grand"><div class="lbl">${d.revenueToday}</div><div class="amt">${fmt(s.revenue)} сум</div></div>`;
+    html += `<div class="bars">`;
+    const max = Math.max(...s.week);
+    s.week.forEach((v,i)=>{
+      html += `<div class="bar-row"><span class="day">${days[i]}</span><div class="bar-track"><div class="bar-fill" style="width:${(v/max*100).toFixed(0)}%"></div></div><span class="val">${v}М</span></div>`;
+    });
+    html += `</div>`;
+    html += `<div class="summary-card">`;
+    let totalL = 0;
+    Object.entries(s.fuels).forEach(([fuel,l])=>{
+      totalL += l;
+      html += `<div class="summary-row"><span>${fuel}</span><span class="v">${l} л</span></div>`;
+    });
+    html += `<div class="summary-row"><span>${d.totalSold}</span><span class="v">${totalL} л</span></div></div>`;
+    html += `<p class="section-label">${d.discrepancies}</p>`;
+    html += s.discrepancy ? `<div class="alert-card">⚠️ <span>${s.discrepancy}</span></div>` : `<div class="empty-hint">—</div>`;
+  }
+  document.getElementById('reportsContent').innerHTML = html;
+}
+
+function renderSettings(){
+  const lang = document.querySelector('.langtoggle button.active').dataset.lang;
+  const d = dict[lang];
+  const container = document.getElementById('settingsContent');
+  if(currentStation==='all'){
+    container.innerHTML = `<p class="section-label">${d.tanksLabel}</p><div class="empty-hint">${lang==='uz' ? 'Tahrirlash uchun bitta shoxobchani tanlang' : 'Выберите одну станцию, чтобы редактировать её котлы'}</div>`;
+    return;
+  }
+  const s = stationData[currentStation];
+  let html = `<p class="section-label">${d.tanksLabel} · АЗС №${currentStation}</p>`;
+  s.tanks.forEach(t=>{
+    html += `<div class="settings-card"><label>${d.tankNameLbl}</label><input type="text" value="${t}"></div>`;
+  });
+  html += `<p class="hint-note">${d.priceHint}</p>`;
+
+  html += `<p class="section-label" style="margin-top:20px">${d.countersLabel}</p>`;
+  html += `<p class="hint-note" style="margin-bottom:10px">${d.countersHint}</p>`;
+  s.counters.forEach((c,idx)=>{
+    html += `<div class="settings-card">
+      <label>${d.counterTag} ${c.tag}</label>
+      <input type="number" inputmode="numeric" class="counter-value-input" data-idx="${idx}" value="${c.value}">
+    </div>`;
+  });
+
+  container.innerHTML = html;
+
+  container.querySelectorAll('.counter-value-input').forEach(inp=>{
+    inp.addEventListener('change', ()=>{
+      const idx = parseInt(inp.dataset.idx);
+      stationData[currentStation].counters[idx].value = parseInt(inp.value)||0;
+    });
+  });
+}
+
+function renderAll(){
+  renderStationRow();
+  renderRequests();
+  renderReports();
+  renderSettings();
+}
+
+function applyLang(lang){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key = el.getAttribute('data-i18n');
+    if(dict[lang][key]) el.innerHTML = dict[lang][key];
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{
+    const key = el.getAttribute('data-i18n-ph');
+    if(dict[lang][key]) el.setAttribute('placeholder', dict[lang][key]);
+  });
+  document.querySelectorAll('.langtoggle button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.lang===lang);
+  });
+  renderAll();
+}
+document.querySelectorAll('.langtoggle button').forEach(b=>{
+  b.addEventListener('click', ()=>applyLang(b.dataset.lang));
+});
+
+document.querySelectorAll('nav.tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+document.querySelectorAll('.period-switch button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.period-switch button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+renderAll();
+
+function sendChat(){
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text) return;
+  const log = document.getElementById('chatLog');
+  log.insertAdjacentHTML('beforeend', `<div class="msg user"><div class="bubble">${text}</div></div>`);
+  log.insertAdjacentHTML('beforeend', `<div class="msg ai"><div class="bubble"><div class="ai-tag">На основе данных бота</div>Считаю по сохранённым отчётам за нужный период — в реальной версии здесь появится точный ответ на основе ваших данных.</div></div>`);
+  input.value='';
+  log.scrollIntoView({behavior:'smooth', block:'end'});
+}
+</script>
+</body>
+</html>
