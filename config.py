@@ -24,8 +24,9 @@ OWNER_WEBAPP_URL = os.environ.get("OWNER_WEBAPP_URL", "")
 # Имя владельца станции — для персонального приветствия
 OWNER_NAME = os.environ.get("OWNER_NAME", "")
 
-# Ключ Anthropic API для ИИ-блока (вопросы владельца на естественном языке).
+# Ключ Google Gemini для ИИ-блока (вопросы владельца на естественном языке).
+# Бесплатный тариф — ключ получают на aistudio.google.com без карты.
 # Без него /api/ai/ask будет возвращать понятную ошибку вместо падения.
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
 DATA_DIR = os.environ.get("DATA_DIR", "data")
