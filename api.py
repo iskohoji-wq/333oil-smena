@@ -235,4 +235,165 @@ def _format_shift_message(shift: dict) -> str:
 async def get_reports(request: web.Request):
     tg_id = request.query.get("tg_id")
     if not _is_owner(tg_id):
-        return web.json_response({"error": "not_authorized
+        return web.json_response({"error": "not_authorized"}, status=403)
+
+    date = request.query.get("date")
+    station_id = request.query.get("station_id")
+    shifts = storage.get_shifts(station_id=station_id, date=date)
+
+    total_liters = sum(s.get("total_liters", 0) for s in shifts)
+    total_revenue = sum(s.get("total_revenue", 0) for s in shifts)
+
+    return web.json_response({
+        "date": date,
+        "station_id": station_id,
+        "shifts": shifts,
+        "total_liters": total_liters,
+        "total_revenue": total_revenue,
+        "archive_days": storage.ARCHIVE_DAYS,
+    })
+
+
+async def get_pending(request: web.Request):
+    tg_id = request.query.get("tg_id")
+    if not _is_owner(tg_id):
+        return web.json_response({"error": "not_authorized"}, status=403)
+    pending = storage.get_pending()
+    return web.json_response([
+        {"tg_id": tid, **p} for tid, p in pending.items()
+    ])
+
+
+async def resolve_pending(request: web.Request):
+    body = await request.json()
+    tg_id = request.query.get("tg_id")
+    if not _is_owner(tg_id):
+        return web.json_response({"error": "not_authorized"}, status=403)
+
+    target_id = int(body["tg_id"])
+    approve = bool(body.get("approve"))
+    station_id = body.get("station_id", storage.DEFAULT_STATION_ID)
+    pending = storage.get_pending().get(str(target_id))
+    if not pending:
+        return web.json_response({"error": "not_found"}, status=404)
+
+    storage.remove_pending(target_id)
+    operator_lang = storage.get_lang(target_id, default="ru")
+    bot = request.app["bot"]
+    if approve:
+        storage.add_operator(target_id, pending["name"], pending["phone"], lang=operator_lang, station_id=station_id)
+        text = "✅ Владелец одобрил вашу заявку. Теперь вы можете сдавать смены в 333 OIL." if operator_lang == "ru" \
+            else "✅ Egasi so'rovingizni tasdiqladi. Endi 333 OIL'da smena topshirishingiz mumkin."
+        try:
+            await bot.send_message(target_id, text)
+        except Exception:
+            pass
+    else:
+        text = "К сожалению, владелец отклонил вашу заявку." if operator_lang == "ru" \
+            else "Afsuski, egasi so'rovingizni rad etdi."
+        try:
+            await bot.send_message(target_id, text)
+        except Exception:
+            pass
+
+    return web.json_response({"ok": True})
+
+
+async def set_initial_counters(request: web.Request):
+    tg_id = request.query.get("tg_id")
+    if not _is_owner(tg_id):
+        return web.json_response({"error": "not_authorized"}, status=403)
+    body = await request.json()
+    station_id = body.get("station_id", storage.DEFAULT_STATION_ID)
+    values = body.get("counter_values", {})
+    applied = storage.set_initial_counters(station_id, values)
+    if not applied:
+        return web.json_response({"error": "already_initialized"}, status=409)
+    return web.json_response({"ok": True, "station": storage.get_station(station_id)})
+
+
+async def update_settings(request: web.Request):
+    tg_id = request.query.get("tg_id")
+    if not _is_owner(tg_id):
+        return web.json_response({"error": "not_authorized"}, status=403)
+    body = await request.json()
+    station_id = body.pop("station_id", storage.DEFAULT_STATION_ID)
+    cfg = storage.update_station_settings(station_id, body)
+    return web.json_response(cfg)
+
+
+async def ai_ask(request: web.Request):
+    tg_id = request.query.get("tg_id")
+    if not _is_owner(tg_id):
+        return web.json_response({"error": "not_authorized"}, status=403)
+
+    if not GEMINI_API_KEY:
+        return web.json_response({"error": "ai_not_configured"}, status=503)
+
+    body = await request.json()
+    question = body.get("question", "").strip()
+    if not question:
+        return web.json_response({"error": "question_required"}, status=400)
+
+    lang = storage.get_lang(int(tg_id), default="ru")
+    stations = storage.get_stations()
+    recent_shifts = storage.get_shifts()[-100:]
+
+    context = {
+        "stations": stations,
+        "recent_shifts": recent_shifts,
+    }
+
+    if lang == "uz":
+        system_prompt = (
+            "Sen 333 OIL benzin quyish shoxobchalari tarmog'ining sun'iy intellekt "
+            "yordamchisisan. Faqat quyida berilgan JSON ma'lumotlar asosida javob ber, "
+            "hech narsa o'ylab topma. Javobni FAQAT o'zbek tilida, aniq va lo'nda yoz."
+        )
+    else:
+        system_prompt = (
+            "Ты ИИ-ассистент сети АЗС 333 OIL. Отвечай ТОЛЬКО на основе приведённых "
+            "ниже данных в формате JSON, ничего не придумывай. Отвечай ТОЛЬКО на "
+            "русском языке, чётко и по делу."
+        )
+
+    import aiohttp as _aiohttp
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + GEMINI_API_KEY
+    payload = {
+        "system_instruction": {"parts": [{"text": system_prompt}]},
+        "contents": [{
+            "parts": [{"text": "Данные станций:\n" + json.dumps(context, ensure_ascii=False) + "\n\nВопрос владельца: " + question}],
+        }],
+    }
+    try:
+        async with _aiohttp.ClientSession() as session:
+            async with session.post(url, json=payload, timeout=_aiohttp.ClientTimeout(total=30)) as resp:
+                data = await resp.json()
+                if resp.status != 200:
+                    return web.json_response({"error": "ai_request_failed", "detail": data}, status=502)
+    except Exception as e:
+        return web.json_response({"error": "ai_request_failed", "detail": str(e)}, status=502)
+
+    try:
+        answer = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    except (KeyError, IndexError):
+        answer = ""
+    return web.json_response({"answer": answer})
+
+
+def create_app(bot) -> web.Application:
+    app = web.Application(middlewares=[cors_middleware()])
+    app["bot"] = bot
+    app.router.add_get("/api/config", get_config)
+    app.router.add_post("/api/shift", submit_shift)
+    app.router.add_get("/api/reports", get_reports)
+    app.router.add_get("/api/pending", get_pending)
+    app.router.add_post("/api/pending/resolve", resolve_pending)
+    app.router.add_post("/api/settings", update_settings)
+    app.router.add_post("/api/settings/init-counters", set_initial_counters)
+    app.router.add_get("/api/stations", get_stations)
+    app.router.add_post("/api/stations/create", create_station)
+    app.router.add_post("/api/stations/rename", rename_station)
+    app.router.add_post("/api/ai/ask", ai_ask)
+    app.router.add_route("OPTIONS", "/{tail:.*}", lambda r: web.Response())
+    return app
