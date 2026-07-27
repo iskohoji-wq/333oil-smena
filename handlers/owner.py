@@ -5,14 +5,14 @@ from aiogram.types import (
 )
 
 import storage
-from config import OWNER_WEBAPP_URL
+from config import OWNER_WEBAPP_URL, OWNER_NAME
 from locales import t
 from handlers.registration import approval_keyboard
 
 router = Router()
 
 
-def owner_keyboard(lang):
+def owner_keyboard(lang: str) -> ReplyKeyboardMarkup:
     buttons = []
     if OWNER_WEBAPP_URL:
         buttons.append([KeyboardButton(
@@ -22,10 +22,12 @@ def owner_keyboard(lang):
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
 
 
-async def send_owner_menu(message: Message, lang=None):
+async def send_owner_menu(message: Message, lang: str = None):
     tg_id = message.from_user.id if message.from_user else None
     if lang is None:
         lang = storage.get_lang(tg_id) if tg_id else "ru"
+    if OWNER_NAME:
+        await message.answer(t("owner_greeting", lang, name=OWNER_NAME))
     await message.answer(t("owner_menu", lang), reply_markup=owner_keyboard(lang))
 
 
