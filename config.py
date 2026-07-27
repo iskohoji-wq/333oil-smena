@@ -21,7 +21,11 @@ API_PORT = int(os.environ.get("PORT", 8080))
 OPERATOR_WEBAPP_URL = os.environ.get("OPERATOR_WEBAPP_URL", "")
 OWNER_WEBAPP_URL = os.environ.get("OWNER_WEBAPP_URL", "")
 
-# Максимальный срок хранения детальных отчётов (в днях)
-REPORT_RETENTION_DAYS = 90
+# Имя владельца станции — для персонального приветствия
+OWNER_NAME = os.environ.get("OWNER_NAME", "")
+
+# Ключ Anthropic API для ИИ-блока (вопросы владельца на естественном языке).
+# Без него /api/ai/ask будет возвращать понятную ошибку вместо падения.
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
 DATA_DIR = os.environ.get("DATA_DIR", "data")
