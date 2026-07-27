@@ -131,4 +131,5 @@ def _default_station(name: str) -> dict:
 
 
 def get_stations() -> dict:
-    stations = _read(STATIONS_FIL
+    stations = _read(STATIONS_FILE, None)
+
