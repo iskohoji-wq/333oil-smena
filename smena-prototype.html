@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>333 OIL · Смена</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#FFFFFF;
+    --panel:#F2F6FC;
+    --panel-2:#EAF1FB;
+    --paper:#FFFFFF;
+    --paper-line:#DCE8F8;
+    --blue:#155CE0;
+    --blue-deep:#0A2E6B;
+    --blue-dim:#5A83C4;
+    --green:#1E9E6B;
+    --red:#D1473A;
+    --text:#16233B;
+    --muted:#6C7C93;
+    --mono:'IBM Plex Mono', monospace;
+    --sans:'IBM Plex Sans', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:#0A1116;
+    font-family:var(--sans);
+    display:flex;
+    justify-content:center;
+    padding:24px 12px;
+    min-height:100vh;
+  }
+  .phone{
+    width:390px;
+    max-width:100%;
+    background:var(--ink);
+    border-radius:34px;
+    border:1px solid #D3E0F2;
+    box-shadow:0 40px 80px -30px rgba(10,46,107,.35);
+    overflow:hidden;
+    color:var(--text);
+    position:relative;
+  }
+  .notch{
+    height:26px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .notch::before{
+    content:'';
+    width:90px;height:6px;border-radius:6px;background:#000;opacity:.5;
+  }
+  header{
+    padding:6px 20px 16px;
+    border-bottom:1px solid #E1EAF6;
+    background:linear-gradient(180deg,#F2F7FE,#FFFFFF);
+  }
+  .row-top{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-bottom:10px;
+  }
+  .brand{
+    display:flex;align-items:center;gap:8px;
+  }
+  .brand .mark{
+    width:26px;height:26px;border-radius:7px;background:var(--blue-deep);
+    color:#fff;font-family:var(--mono);font-weight:700;font-size:10px;
+    display:flex;align-items:center;justify-content:center;letter-spacing:-.02em;
+  }
+  .brand .word{
+    font-size:13px;font-weight:700;letter-spacing:.06em;color:var(--blue-deep);
+  }
+  .brand .word span{color:var(--blue);font-weight:500;}
+  .langtoggle{
+    display:flex;background:#EAF1FB;border-radius:999px;padding:3px;border:1px solid #D3E0F2;
+  }
+  .langtoggle button{
+    border:none;background:transparent;color:var(--blue-dim);font-family:var(--mono);
+    font-size:11px;font-weight:600;padding:5px 10px;border-radius:999px;cursor:pointer;
+    letter-spacing:.04em;
+  }
+  .langtoggle button.active{background:var(--blue);color:#fff;}
+  h1{
+    font-size:20px;margin:0 0 4px;font-weight:700;letter-spacing:-.01em;color:var(--blue-deep);
+  }
+  .sub{
+    font-size:12.5px;color:var(--muted);
+  }
+  .steps{
+    display:flex;gap:6px;margin-top:14px;
+  }
+  .steps div{
+    flex:1;height:3px;border-radius:3px;background:#DCE8F8;
+  }
+  .steps div.done{background:var(--green);}
+  .steps div.current{background:var(--blue);}
+
+  main{padding:18px 18px 140px;height:560px;overflow-y:auto;}
+  section{display:none;}
+  section.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+  .section-label{
+    font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--blue);margin:0 0 10px;display:flex;align-items:center;gap:8px;
+  }
+  .section-label::after{content:'';flex:1;height:1px;background:#DCE8F8;}
+
+  .tank-card{
+    background:
+      repeating-linear-gradient(var(--paper-line) 0 1px, transparent 1px 22px),
+      var(--paper);
+    color:var(--text);
+    border-radius:14px;
+    padding:14px 16px 16px;
+    margin-bottom:12px;
+    border:1px solid #D3E0F2;
+    position:relative;
+    box-shadow:0 2px 10px -4px rgba(10,46,107,.1);
+  }
+  .tank-card .tank-name{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:10px;
+  }
+  .tank-name .tname{
+    font-family:var(--sans);font-weight:600;font-size:14px;color:var(--blue-deep);
+  }
+  .tank-tag{
+    font-family:var(--mono);font-size:10px;background:var(--blue-deep);color:#fff;
+    padding:2px 7px;border-radius:5px;letter-spacing:.05em;
+  }
+  .dip-row{display:flex;gap:8px;align-items:flex-end;}
+  .dip-field{flex:1;}
+  .dip-field label{font-size:10px;color:var(--blue-dim);text-transform:uppercase;letter-spacing:.08em;}
+  .dip-field input{
+    width:100%;margin-top:4px;padding:9px 8px;border-radius:8px;border:1px solid #C5D8F0;
+    background:#F7FAFE;font-family:var(--mono);font-size:16px;font-weight:600;color:var(--text);
+    text-align:center;
+  }
+  .dip-eq{font-size:20px;color:var(--blue-dim);padding-bottom:9px;}
+  .dip-result{
+    margin-top:10px;padding-top:10px;border-top:1px dashed #C5D8F0;
+    display:flex;justify-content:space-between;align-items:baseline;
+  }
+  .dip-result .val{font-family:var(--mono);font-size:19px;font-weight:700;color:var(--blue);}
+  .dip-result .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+
+  .counter-card{
+    background:var(--panel);border:1px solid #D3E0F2;border-radius:14px;
+    padding:14px 16px;margin-bottom:12px;
+  }
+  .counter-head{
+    display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-bottom:10px;
+  }
+  .counter-head b{color:var(--blue-deep);font-weight:700;}
+  .counter-inputs{display:flex;gap:10px;align-items:center;}
+  .counter-inputs .field{flex:1;}
+  .counter-inputs label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+  .counter-inputs input{
+    width:100%;margin-top:4px;padding:9px 8px;border-radius:8px;border:1px solid #C5D8F0;
+    background:#fff;color:var(--text);font-family:var(--mono);font-size:15px;text-align:center;
+  }
+  .counter-inputs input[disabled]{color:var(--muted);background:#EAF1FB;}
+  .counter-arrow{color:var(--blue-dim);font-size:16px;padding-top:12px;}
+  .counter-sold{
+    margin-top:10px;display:flex;justify-content:space-between;
+    font-family:var(--mono);font-size:13.5px;
+  }
+  .counter-sold .liters{color:var(--blue);font-weight:700;}
+
+  .summary-card{
+    background:var(--panel-2);border:1px solid #D3E0F2;border-radius:16px;padding:18px;margin-bottom:14px;
+  }
+  .summary-row{
+    display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #DCE8F8;
+    font-size:13.5px;
+  }
+  .summary-row:last-child{border-bottom:none;}
+  .summary-row .v{font-family:var(--mono);font-weight:600;color:var(--blue-deep);}
+  .grand{
+    background:linear-gradient(160deg,var(--blue-deep),var(--blue));border:1px solid var(--blue-deep);border-radius:16px;
+    padding:18px;text-align:center;margin-bottom:14px;
+  }
+  .grand .lbl{font-size:11px;color:#CBDCF7;text-transform:uppercase;letter-spacing:.1em;}
+  .grand .amt{font-family:var(--mono);font-size:30px;font-weight:700;color:#fff;margin-top:4px;}
+
+  .warn{
+    background:#FBEAE7;border:1px solid var(--red);border-radius:12px;
+    padding:12px 14px;font-size:12.5px;line-height:1.5;margin-bottom:14px;color:#8A2E22;
+    display:flex;gap:10px;
+  }
+  .warn .ic{font-size:16px;}
+  .price-reminder{
+    background:var(--panel-2);border:1px solid #C5D8F0;border-radius:12px;
+    padding:11px 14px;font-size:12px;line-height:1.6;margin-bottom:14px;color:var(--blue-deep);
+    font-family:var(--mono);
+  }
+  .ok{
+    background:#E7F5EE;border:1px solid var(--green);border-radius:12px;
+    padding:12px 14px;font-size:12.5px;line-height:1.5;margin-bottom:14px;color:#1C6B48;
+    display:flex;gap:10px;
+  }
+  .error-screen{
+    padding:40px 20px;text-align:center;color:var(--muted);font-size:13.5px;line-height:1.6;
+  }
+  .spinner{
+    display:flex;justify-content:center;align-items:center;height:200px;color:var(--muted);font-size:13px;
+  }
+
+  footer{
+    position:absolute;bottom:0;left:0;right:0;
+    padding:14px 18px 22px;background:var(--ink);
+    box-shadow:0 -16px 24px -8px rgba(10,46,107,.12);
+  }
+  .navbtns{display:flex;gap:10px;}
+  .btn{
+    flex:1;padding:14px;border-radius:12px;border:none;font-family:var(--sans);font-weight:600;
+    font-size:14.5px;cursor:pointer;text-align:center;
+  }
+  .btn-primary{background:var(--blue);color:#fff;}
+  .btn-secondary{background:#fff;border:1px solid #C5D8F0;color:var(--blue-deep);}
+  .btn:disabled{opacity:.5;}
+
+  ::-webkit-scrollbar{width:0;}
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="notch"></div>
+  <header>
+    <div class="row-top">
+      <div class="brand">
+        <div class="mark">333</div>
+        <div class="word">OIL <span id="stationNameLabel">· Смена</span></div>
+      </div>
+      <div class="langtoggle">
+        <button data-lang="ru" class="active">RU</button>
+        <button data-lang="uz">UZ</button>
+      </div>
+    </div>
+    <h1 data-i18n="title">Сдача смены</h1>
+    <div class="sub" id="subtitle">—</div>
+    <div class="steps">
+      <div class="current" id="dot1"></div>
+      <div id="dot2"></div>
+      <div id="dot3"></div>
+    </div>
+  </header>
+
+  <main id="mainArea">
+    <div class="spinner" id="loadingScreen">Загрузка…</div>
+
+    <!-- STEP 1: CALIBRATION -->
+    <section id="step1">
+      <p class="section-label" data-i18n="calibLabel">Калибровка резервуаров</p>
+      <div id="tanksContainer"></div>
+    </section>
+
+    <!-- STEP 2: COUNTERS -->
+    <section id="step2">
+      <p class="section-label" data-i18n="priceLabel">Цены за литр</p>
+      <div class="tank-card" style="margin-bottom:16px" id="priceCard"></div>
+
+      <p class="section-label" data-i18n="counterLabel">Счётчики колонок</p>
+      <div id="countersContainer"></div>
+    </section>
+
+    <!-- STEP 3: SUMMARY -->
+    <section id="step3">
+      <p class="section-label" data-i18n="summaryLabel">Итог смены</p>
+      <div class="price-reminder" id="priceReminder"></div>
+      <div class="grand">
+        <div class="lbl" data-i18n="totalRevenue">Общая выручка</div>
+        <div class="amt" id="grandTotal">—</div>
+      </div>
+      <div class="summary-card" id="summaryRows"></div>
+      <div id="discrepancyBlock"></div>
+    </section>
+
+    <!-- ERROR -->
+    <section id="stepError">
+      <div class="error-screen" id="errorText"></div>
+    </section>
+  </main>
+
+  <footer style="display:none" id="footerNav">
+    <div class="navbtns">
+      <button class="btn btn-secondary" id="backBtn" style="visibility:hidden" data-i18n="back">Назад</button>
+      <button class="btn btn-primary" id="nextBtn" data-i18n="next">Далее</button>
+    </div>
+  </footer>
+</div>
+
+<script>
+const API_BASE = 'https://web-production-0ef7a.up.railway.app';
+
+const dict = {
+  ru:{
+    title:"Сдача смены",
+    calibLabel:"Калибровка резервуаров", cm:"См", mm:"Мм", volume:"Остаток топлива",
+    counterLabel:"Счётчики колонок",
+    priceLabel:"Цены за литр", priceReminderPrefix:"Отчёт составлен по ценам:",
+    was:"Было", now:"Стало", sold:"Продано",
+    summaryLabel:"Итог смены", totalRevenue:"Общая выручка", totalLiters:"Всего продано",
+    warnHint:"Проверьте перед отправкой.",
+    okText:"Все резервуары совпадают со счётчиками в пределах нормы.",
+    back:"Назад", next:"Далее", send:"Отправить владельцу", sending:"Отправка…", sent:"Отправлено ✓",
+    loadError:"Не удалось загрузить данные. Проверьте связь и попробуйте снова.",
+    noTgId:"Не удалось определить пользователя. Откройте это приложение через кнопку в боте Telegram.",
+    notInitialized:"Владелец ещё не ввёл начальные показания счётчиков на этой станции. Обратитесь к владельцу — как только он это сделает, вы сможете сдавать смену.",
+    submitError:"Не удалось отправить отчёт. Попробуйте ещё раз.",
+  },
+  uz:{
+    title:"Smenani topshirish",
+    calibLabel:"Rezervuarlarni kalibrlash", cm:"Sm", mm:"Mm", volume:"Yoqilg'i qoldig'i",
+    counterLabel:"Kolonka hisoblagichlari",
+    priceLabel:"Litr narxi", priceReminderPrefix:"Hisobot quyidagi narxlar bo'yicha tuzildi:",
+    was:"Boshida", now:"Oxirida", sold:"Sotildi",
+    summaryLabel:"Smena yakuni", totalRevenue:"Umumiy tushum", totalLiters:"Jami sotildi",
+    warnHint:"Yuborishdan oldin tekshiring.",
+    okText:"Barcha rezervuarlar hisoblagichlar bilan me'yorda mos keladi.",
+    back:"Orqaga", next:"Keyingi", send:"Egaga yuborish", sending:"Yuborilmoqda…", sent:"Yuborildi ✓",
+    loadError:"Ma'lumotlarni yuklab bo'lmadi. Aloqani tekshirib, qayta urinib ko'ring.",
+    noTgId:"Foydalanuvchini aniqlab bo'lmadi. Ilovani Telegram botidagi tugma orqali oching.",
+    notInitialized:"Egasi hali bu stansiyada boshlang'ich hisoblagich ko'rsatkichlarini kiritmagan. Egasiga murojaat qiling — u buni amalga oshirishi bilan smena topshira olasiz.",
+    submitError:"Hisobotni yuborib bo'lmadi. Qayta urinib ko'ring.",
+  }
+};
+
+let lang = 'ru';
+let cfg = null;
+let step = 1;
+let lastShiftResult = null;
+
+function t(key){ return dict[lang][key] || key; }
+function fmt(n){ return Math.round(n).toLocaleString('ru-RU'); }
+
+function getTgId(){
+  try{
+    const tg = window.Telegram && window.Telegram.WebApp;
+    if(tg){
+      try{ tg.ready(); }catch(e){}
+      if(tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id){
+        return String(tg.initDataUnsafe.user.id);
+      }
+      if(tg.initData){
+        const params = new URLSearchParams(tg.initData);
+        const userRaw = params.get('user');
+        if(userRaw){
+          try{
+            const user = JSON.parse(userRaw);
+            if(user && user.id) return String(user.id);
+          }catch(e){}
+        }
+      }
+    }
+  }catch(e){}
+  const params = new URLSearchParams(location.search);
+  return params.get('tg_id') || '';
+}
+
+// --- calibration interpolation (sampled every 10cm from real tank passport tables) ---
+const tables = {
+  1:[[0,0],[10,0.315],[20,0.874],[30,1.593],[40,2.429],[50,3.360],[60,4.368],[70,5.441],[80,6.569],[90,7.742],[100,8.951],[110,10.066],[120,11.454],[130,12.733],[140,14.022],[150,15.316],[160,16.607],[170,17.891],[180,19.161],[190,20.410],[200,21.632],[210,22.820],[220,23.966],[230,25.062],[240,26.096],[250,27.058],[260,27.933],[270,28.701],[280,29.331],[286,29.621]],
+  2:[[0,0],[10,0.315],[20,0.836],[30,1.492],[40,2.248],[50,3.084],[60,3.985],[70,4.939],[80,5.935],[90,6.965],[100,8.021],[110,9.096],[120,10.181],[130,11.380],[140,12.468],[150,13.438],[160,14.501],[170,15.541],[180,16.549],[190,17.518],[200,18.438],[210,19.297],[220,20.081],[230,20.773],[240,21.344],[247,21.645]],
+  3:[[0,0],[10,0.156],[20,0.511],[30,0.926],[40,1.405],[50,1.934],[60,2.501],[70,3.100],[80,3.722],[90,4.361],[100,5.012],[110,5.668],[120,6.325],[130,6.976],[140,7.618],[150,8.242],[160,8.844],[170,9.471],[180,10.001],[190,10.482],[200,10.861],[210,11.230],[214,11.307]],
+  4:[[0,0],[10,0.160],[20,0.516],[30,0.932],[40,1.412],[50,1.941],[60,2.509],[70,3.169],[80,3.792],[90,4.432],[100,5.017],[110,5.672],[120,6.327],[130,7.040],[140,7.677],[150,8.235],[160,8.833],[170,9.455],[180,9.978],[190,10.450],[200,10.820],[210,11.146],[213,11.221]]
+};
+function interp(table, cmTotal){
+  if(!table) return 0;
+  for(let i=0;i<table.length-1;i++){
+    const [c0,v0]=table[i], [c1,v1]=table[i+1];
+    if(cmTotal>=c0 && cmTotal<=c1){
+      const tt=(cmTotal-c0)/(c1-c0);
+      return v0 + tt*(v1-v0);
+    }
+  }
+  return table[table.length-1][1];
+}
+
+function showError(msg){
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.querySelectorAll('main > section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('stepError').classList.add('active');
+  document.getElementById('errorText').textContent = msg;
+  document.getElementById('footerNav').style.display = 'none';
+}
+
+function renderTanks(){
+  const container = document.getElementById('tanksContainer');
+  container.innerHTML = '';
+  cfg.tanks.forEach(tank=>{
+    const card = document.createElement('div');
+    card.className = 'tank-card';
+    card.dataset.tank = tank.id;
+    card.innerHTML = `
+      <div class="tank-name">
+        <span class="tname">${tank.name}</span>
+        <span class="tank-tag">${String(tank.id).padStart(2,'0')}</span>
+      </div>
+      <div class="dip-row">
+        <div class="dip-field"><label>${t('cm')}</label><input type="number" class="cm" inputmode="numeric"></div>
+        <div class="dip-eq">·</div>
+        <div class="dip-field"><label>${t('mm')}</label><input type="number" class="mm" inputmode="numeric"></div>
+      </div>
+      <div class="dip-result"><span class="lbl">${t('volume')}</span><span class="val liters">— л</span></div>
+    `;
+    container.appendChild(card);
+  });
+  container.querySelectorAll('input').forEach(i=>i.addEventListener('input', recalcTanks));
+}
+
+function recalcTanks(){
+  document.querySelectorAll('.tank-card').forEach(card=>{
+    const tankId = card.dataset.tank;
+    const cm = parseFloat(card.querySelector('.cm').value)||0;
+    const mm = parseFloat(card.querySelector('.mm').value)||0;
+    const cmTotal = cm + mm/10;
+    const m3 = interp(tables[tankId], cmTotal);
+    const liters = Math.round(m3*1000);
+    card.querySelector('.liters').textContent = fmt(liters)+' л';
+  });
+}
+
+function renderPriceCard(){
+  const priceCard = document.getElementById('priceCard');
+  const fuels = Object.keys(cfg.prices);
+  priceCard.innerHTML = '<div class="dip-row">' + fuels.map(fuel=>`
+    <div class="dip-field">
+      <label>${fuel}</label>
+      <input type="number" class="price" data-fuel="${fuel}" value="${cfg.prices[fuel]}" inputmode="numeric">
+    </div>
+  `).join('') + '</div>';
+  priceCard.querySelectorAll('.price').forEach(i=>i.addEventListener('input', updatePriceReminder));
+}
+
+function renderCounters(){
+  const container = document.getElementById('countersContainer');
+  container.innerHTML = '';
+  Object.keys(cfg.counter_tags).forEach(tag=>{
+    const label = cfg.counter_tags[tag];
+    const tankId = cfg.counter_to_tank[tag];
+    const tank = cfg.tanks.find(tk=>tk.id===tankId);
+    const was = cfg.counter_values[tag] || 0;
+    const card = document.createElement('div');
+    card.className = 'counter-card';
+    card.dataset.tag = tag;
+    card.dataset.tankId = tankId;
+    card.dataset.fuel = tank ? tank.fuel : '';
+    card.innerHTML = `
+      <div class="counter-head"><b>${tank ? tank.name : ''}</b><span>${label}</span></div>
+      <div class="counter-inputs">
+        <div class="field"><label>${t('was')}</label><input type="number" value="${was}" disabled></div>
+        <div class="counter-arrow">→</div>
+        <div class="field"><label>${t('now')}</label><input type="number" class="now-input" inputmode="numeric"></div>
+      </div>
+      <div class="counter-sold"><span>${t('sold')}</span><span class="liters">0 л</span></div>
+    `;
+    container.appendChild(card);
+  });
+  container.querySelectorAll('.now-input').forEach(i=>i.addEventListener('input', recalcCounters));
+}
+
+function recalcCounters(){
+  document.querySelectorAll('.counter-card').forEach(card=>{
+    const was = parseFloat(card.querySelector('input[disabled]').value)||0;
+    const now = parseFloat(card.querySelector('.now-input').value)||0;
+    const sold = Math.max(0, now-was);
+    card.querySelector('.counter-sold .liters').textContent = fmt(sold)+' л';
+  });
+}
+
+function updatePriceReminder(){
+  const fuels = Object.keys(cfg.prices);
+  const parts = fuels.map(fuel=>{
+    const input = document.querySelector(`.price[data-fuel="${fuel}"]`);
+    return fuel + ' — ' + fmt(parseFloat(input.value)||0);
+  });
+  document.getElementById('priceReminder').textContent = t('priceReminderPrefix') + ' ' + parts.join(' · ');
+}
+
+function applyLang(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key = el.getAttribute('data-i18n');
+    if(dict[lang][key]) el.textContent = dict[lang][key];
+  });
+  document.querySelectorAll('.langtoggle button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.lang===lang);
+  });
+  if(cfg){
+    renderTanks();
+    renderCounters();
+    updatePriceReminder();
+  }
+  updateNextBtn();
+}
+document.querySelectorAll('.langtoggle button').forEach(b=>{
+  b.addEventListener('click', ()=>{ lang = b.dataset.lang; applyLang(); });
+});
+
+const sections = { 1: document.getElementById('step1'), 2: document.getElementById('step2'), 3: document.getElementById('step3') };
+const dots = { 1: document.getElementById('dot1'), 2: document.getElementById('dot2'), 3: document.getElementById('dot3') };
+const backBtn = document.getElementById('backBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+function updateNextBtn(){
+  if(step===3) nextBtn.textContent = t('send');
+  else nextBtn.textContent = t('next');
+}
+
+function render(){
+  Object.values(sections).forEach(s=>s.classList.remove('active'));
+  sections[step].classList.add('active');
+  Object.entries(dots).forEach(([i,d])=>{
+    i = parseInt(i);
+    d.className = i<step ? 'done' : (i===step ? 'current' : '');
+  });
+  backBtn.style.visibility = step===1 ? 'hidden' : 'visible';
+  updateNextBtn();
+}
+
+function renderSummary(shift){
+  const rows = document.getElementById('summaryRows');
+  rows.innerHTML = '';
+  shift.counters.forEach(c=>{
+    if(!c.tank_id) return;
+    const div = document.createElement('div');
+    div.className = 'summary-row';
+    div.innerHTML = `<span>${c.fuel} (${c.tag})</span><span class="v">${fmt(c.sold_liters)} л</span>`;
+    rows.appendChild(div);
+  });
+  const totalRow = document.createElement('div');
+  totalRow.className = 'summary-row';
+  totalRow.innerHTML = `<span>${t('totalLiters')}</span><span class="v">${fmt(shift.total_liters)} л</span>`;
+  rows.appendChild(totalRow);
+
+  document.getElementById('grandTotal').textContent = fmt(shift.total_revenue) + ' сум';
+
+  const discBlock = document.getElementById('discrepancyBlock');
+  discBlock.innerHTML = '';
+  if(shift.discrepancies && shift.discrepancies.length){
+    const w = document.createElement('div');
+    w.className = 'warn';
+    w.innerHTML = `<span class="ic">⚠️</span><span>${shift.discrepancies.map(d=>'Котёл '+d.tank_id+': '+(d.diff_liters>0?'+':'')+d.diff_liters+' л').join(', ')}. ${t('warnHint')}</span>`;
+    discBlock.appendChild(w);
+  } else {
+    const ok = document.createElement('div');
+    ok.className = 'ok';
+    ok.innerHTML = `<span class="ic">✓</span><span>${t('okText')}</span>`;
+    discBlock.appendChild(ok);
+  }
+}
+
+async function submitShift(){
+  const tgId = getTgId();
+  const tanks = Array.from(document.querySelectorAll('.tank-card')).map(card=>({
+    tank_id: parseInt(card.dataset.tank),
+    cm: parseFloat(card.querySelector('.cm').value)||0,
+    mm: parseFloat(card.querySelector('.mm').value)||0,
+  }));
+  const counters = Array.from(document.querySelectorAll('.counter-card')).map(card=>({
+    tag: card.dataset.tag,
+    end_reading: parseFloat(card.querySelector('.now-input').value)||0,
+  }));
+  const prices = {};
+  document.querySelectorAll('.price').forEach(i=>{ prices[i.dataset.fuel] = parseFloat(i.value)||0; });
+
+  nextBtn.disabled = true;
+  nextBtn.textContent = t('sending');
+  try{
+    const res = await fetch(`${API_BASE}/api/shift`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ tg_id: tgId, tanks, counters, prices }),
+    });
+    const data = await res.json();
+    if(!res.ok || !data.ok){ throw new Error(data.error || 'submit_failed'); }
+    lastShiftResult = data.shift;
+    renderSummary(data.shift);
+    step = 3;
+    render();
+    nextBtn.textContent = t('sent');
+    nextBtn.disabled = true;
+    backBtn.style.visibility = 'hidden';
+  }catch(e){
+    alert(t('submitError'));
+    nextBtn.disabled = false;
+    updateNextBtn();
+  }
+}
+
+nextBtn.addEventListener('click', ()=>{
+  if(step===1){ step=2; render(); }
+  else if(step===2){ submitShift(); }
+});
+backBtn.addEventListener('click', ()=>{ if(step>1 && step<3){ step--; render(); } });
+
+async function init(){
+  const tgId = getTgId();
+  if(!tgId){ showError(t('noTgId')); return; }
+  try{
+    const res = await fetch(`${API_BASE}/api/config?tg_id=${tgId}`);
+    if(!res.ok){
+      const data = await res.json().catch(()=>({}));
+      throw new Error(data.error || 'load_failed');
+    }
+    cfg = await res.json();
+  }catch(e){
+    showError(t('loadError'));
+    return;
+  }
+  if(!cfg.counters_initialized){
+    showError(t('notInitialized'));
+    return;
+  }
+  lang = cfg.lang || 'ru';
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('stationNameLabel').textContent = '· ' + cfg.station_name;
+  document.getElementById('subtitle').textContent = cfg.station_name;
+  document.getElementById('footerNav').style.display = 'block';
+  renderTanks();
+  renderPriceCard();
+  renderCounters();
+  applyLang();
+  recalcTanks();
+  recalcCounters();
+  render();
+}
+init();
+</script>
+</body>
+</html>
